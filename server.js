@@ -3,7 +3,6 @@ const axios = require('axios');
 const cors = require('cors');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -151,13 +150,10 @@ app.use((req, res) => {
     message: 'Endpoint not found'
   });
 });
-
+const PORT = 3000;
+const HOST = '0.0.0.0';
 // Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📝 Try these endpoints:`);
-  console.log(`   - http://localhost:${PORT}/api/users/github`);
-  console.log(`   - http://localhost:${PORT}/api/users/github/octocat`);
-  console.log(`   - http://localhost:${PORT}/api/users/mock`);
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Server is running on http://${HOST}:${PORT}`);
 });
 
