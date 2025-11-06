@@ -60,8 +60,11 @@ app.post('/api/proxy', async (req, res) => {
       method: requestMethod,
       url,
       headers: {
-        ...headers,
-        'User-Agent': headers['User-Agent'] || 'Mock-API-Proxy-Server/1.0'
+        'User-Agent': headers['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': headers['Accept'] || '*/*',
+        'Accept-Encoding': headers['Accept-Encoding'] || 'gzip, deflate, br',
+        'Accept-Language': headers['Accept-Language'] || 'en-US,en;q=0.9',
+        ...headers
       },
       params,
       timeout: Number(process.env.PROXY_TIMEOUT) || 60000
