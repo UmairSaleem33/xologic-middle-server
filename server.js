@@ -4,6 +4,9 @@ const cors = require('cors');
 
 const app = express();
 
+// Trust proxy to get correct client IP
+app.set('trust proxy', true);
+
 app.use(cors());
 app.use(express.json());
 
@@ -45,6 +48,14 @@ async function getPublicIp() {
 
 app.post('/api/proxy', async (req, res) => {
   let publicIp = null;
+  // Extract client IP from request
+  const clientIp = req.ip || 
+                   req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                   req.headers['x-real-ip'] ||
+                   req.connection?.remoteAddress ||
+                   req.socket?.remoteAddress ||
+                   null;
+  
   try {
     const { url, method = 'GET', headers = {}, params = {}, data } = req.body;
 
@@ -64,6 +75,10 @@ app.post('/api/proxy', async (req, res) => {
         'Accept': headers['Accept'] || '*/*',
         'Accept-Encoding': headers['Accept-Encoding'] || 'gzip, deflate, br',
         'Accept-Language': headers['Accept-Language'] || 'en-US,en;q=0.9',
+        // Forward client IP to external API
+        'X-Forwarded-For': clientIp || '',
+        'X-Real-IP': clientIp || '',
+        'X-Client-IP': clientIp || '',
         ...headers
       },
       params,
@@ -75,9 +90,16 @@ app.post('/api/proxy', async (req, res) => {
     }
 
     publicIp = await getPublicIp();
+    console.log('Making proxy request:', {
+      url,
+      method: requestMethod,
+      clientIp,
+      publicIp
+    });
+    
     const response = await axios(axiosConfig);
     const outboundIp = response?.request?.socket?.localAddress || null;
-    console.log('Proxy request succeeded. Outbound IP:', outboundIp);
+    console.log('Proxy request succeeded. Outbound IP:', outboundIp, 'Client IP:', clientIp);
 
     return res.status(response.status).json({
       success: true,
@@ -95,7 +117,7 @@ app.post('/api/proxy', async (req, res) => {
     if (!publicIp) {
       publicIp = await getPublicIp();
     }
-    console.error('Proxy request failed:', error.message, ' publicIp:', publicIp);
+    console.error('Proxy request failed:', error.message, ' publicIp:', publicIp, ' clientIp:', clientIp);
 
     if (error.response) {
       return res.status(error.response.status).json({
@@ -104,7 +126,8 @@ app.post('/api/proxy', async (req, res) => {
         statusCode: error.response.status,
         error: error.response.data,
         headers: error.response.headers,
-        publicIp
+        publicIp,
+        clientIp
       });
     }
 
@@ -114,7 +137,8 @@ app.post('/api/proxy', async (req, res) => {
         message: 'No response received from external API',
         error: error.message,
         outboundIp: errorOutboundIp,
-        publicIp
+        publicIp,
+        clientIp
       });
     }
 
@@ -123,12 +147,13 @@ app.post('/api/proxy', async (req, res) => {
       message: 'Error setting up the proxy request',
       error: error.message,
       outboundIp: errorOutboundIp,
-      publicIp
+      publicIp,
+      clientIp
     });
   }
 });
 
-const PORT =  443;
+const PORT =  3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
