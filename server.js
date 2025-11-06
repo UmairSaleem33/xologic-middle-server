@@ -125,7 +125,7 @@ app.post('/api/proxy', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT =  443;
 const HOST = process.env.HOST || '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
